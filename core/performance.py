@@ -7,7 +7,7 @@ def show_performance():
     try:
         df = pd.read_csv("data/memory.csv")
         st.subheader("📈 Podgląd danych z pamięci")
-        st.dataframe(df.tail(100))
+        st.dataframe(df.tail(100))  # pokazuje ostatnie 100 wpisów
     except FileNotFoundError:
         st.warning("Plik memory.csv nie został znaleziony.")
     except Exception as e:
