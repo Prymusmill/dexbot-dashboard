@@ -1,0 +1,1 @@
+web: streamlit run streamlit_app/Dashboard.py --server.port $PORT --server.enableCORS false
