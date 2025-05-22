@@ -5,14 +5,34 @@ import json
 import os
 import time
 import sys
+import importlib.util
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# 🔧 Dynamiczne importy z plików w innych folderach
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-from core.trade_executor import simulate_trade
-from config.settings import load_settings
-from core.performance import show_performance
+# settings.py
+spec_settings = importlib.util.spec_from_file_location(
+    "settings", os.path.join(BASE_DIR, "config/settings.py"))
+settings_module = importlib.util.module_from_spec(spec_settings)
+spec_settings.loader.exec_module(settings_module)
+load_settings = settings_module.load_settings
 
-CONFIG_PATH = "config/settings.json"
+# trade_executor.py
+spec_trade = importlib.util.spec_from_file_location(
+    "trade_executor", os.path.join(BASE_DIR, "core/trade_executor.py"))
+trade_module = importlib.util.module_from_spec(spec_trade)
+spec_trade.loader.exec_module(trade_module)
+simulate_trade = trade_module.simulate_trade
+
+# performance.py
+spec_perf = importlib.util.spec_from_file_location(
+    "performance", os.path.join(BASE_DIR, "core/performance.py"))
+perf_module = importlib.util.module_from_spec(spec_perf)
+spec_perf.loader.exec_module(perf_module)
+show_performance = perf_module.show_performance
+
+# 📄 Ścieżka do ustawień
+CONFIG_PATH = os.path.join(BASE_DIR, "config/settings.json")
 
 def load_settings_local():
     try:
@@ -39,7 +59,7 @@ def main():
         st.subheader("🚦 Status:")
         st.success("Bot działa w trybie ciągłym. Uczenie trwa...")
 
-        # 📊 Podgląd skuteczności
+        # 📊 Wizualizacja skuteczności
         show_performance()
 
 if __name__ == "__main__":
