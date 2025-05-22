@@ -10,12 +10,13 @@ import importlib.util
 # 🔧 Dynamiczne importy z plików w innych folderach
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# settings.py
-spec_settings = importlib.util.spec_from_file_location(
-    "settings", os.path.join(BASE_DIR, "config/settings.py"))
-settings_module = importlib.util.module_from_spec(spec_settings)
-spec_settings.loader.exec_module(settings_module)
-load_settings = settings_module.load_settings
+# config/settings.json loader
+def load_settings():
+    try:
+        with open(os.path.join(BASE_DIR, "config/settings.json"), "r") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"error": str(e)}
 
 # trade_executor.py
 spec_trade = importlib.util.spec_from_file_location(
