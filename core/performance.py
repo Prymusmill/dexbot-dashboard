@@ -1,42 +1,45 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 import requests
-from io import StringIO
+from bs4 import BeautifulSoup
 
-# 👇 Wstaw właściwe repozytorium i gałąź
-REPO = "Prymusmill/dexbot-worker"
-BRANCH = "main"
+BASE_URL = "https://dexbot-worker-production.up.railway.app/results/"
 
 def get_latest_csv_url():
-    api_url = f"https://api.github.com/repos/{REPO}/contents/data/results"
-    response = requests.get(api_url)
-    if response.status_code != 200:
-        st.error("❌ Nie udało się pobrać listy plików z GitHuba.")
+    try:
+        response = requests.get(BASE_URL)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        links = [a.get("href") for a in soup.find_all("a") if a.get("href", "").endswith(".csv")]
+        if not links:
+            return None
+
+        latest = sorted(links)[-1]  # Zakładamy, że nazwa pliku zawiera timestamp
+        return BASE_URL + latest
+    except Exception as e:
+        st.error(f"Błąd podczas pobierania listy CSV: {e}")
         return None
 
-    files = response.json()
-    csv_files = [f for f in files if f["name"].endswith(".csv")]
-    if not csv_files:
-        st.warning("⚠️ Brak plików CSV w repozytorium.")
+def load_csv_from_url(url):
+    try:
+        df = pd.read_csv(url)
+        return df
+    except Exception as e:
+        st.error(f"Błąd podczas wczytywania pliku CSV: {e}")
         return None
-
-    # Sortuj po nazwie pliku (czyli timestampie w nazwie)
-    csv_files.sort(key=lambda x: x["name"], reverse=True)
-    return csv_files[0]["download_url"]
 
 def show_performance():
+    st.subheader("\ud83d\udcca Podgląd danych z symulacji (z serwera)")
+
     csv_url = get_latest_csv_url()
     if not csv_url:
+        st.warning("Brak plików CSV do wyświetlenia.")
         return
 
-    try:
-        response = requests.get(csv_url)
-        if response.status_code != 200:
-            st.error("❌ Nie udało się pobrać pliku CSV.")
-            return
-
-        df = pd.read_csv(StringIO(response.text))
-        st.subheader("📊 Ostatnie 100 wpisów (z GitHub)")
+    df = load_csv_from_url(csv_url)
+    if df is not None and not df.empty:
+        st.success(f"Załadowano dane z: {csv_url}")
         st.dataframe(df.tail(100))
-    except Exception as e:
-        st.error(f"❌ Błąd: {e}")
+    else:
+        st.warning("Plik CSV jest pusty lub nieprawidłowy.")
